@@ -3,6 +3,7 @@ package models
 type Message struct {
 	Sender  string      `json:"user"`
 	Type    string      `json:"type"`
+	Channel string      `json:"channel"`
 	Payload interface{} `json:"payload"`
 }
 

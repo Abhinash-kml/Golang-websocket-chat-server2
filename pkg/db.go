@@ -1,4 +1,4 @@
-package main
+package database
 
 import (
 	"database/sql"
@@ -11,46 +11,43 @@ import (
 var DB *sql.DB
 
 func ConnectDB() {
-	DB, err := sql.Open("postgres", "postgresql://postgres:postgres@localhost:5432?sslmode=disable")
+	db, err := sql.Open("postgres", "postgresql://postgres:Abx305@localhost:5432?sslmode=disable")
 	if err != nil {
 		log.Fatal("Error opening postgress connection.\n")
 		return
 	}
-	defer DB.Close()
+	DB = db
+	//defer DB.Close()
 
-	CreateTable(DB)
-	InsertData(DB)
+	CreateTable()
+	InsertData()
 }
 
-func CreateTable(DB *sql.DB) {
+func CreateTable() {
 	_, err := DB.Exec(`CREATE TABLE IF NOT EXISTS channels(
 	id SERIAL,
 	name VARCHAR(64));`)
 
 	if err != nil {
 		DB.Close()
+		fmt.Println(err)
 		log.Fatal("Error creating table channels.\n")
 	}
 
 	_, err = DB.Exec(`CREATE TABLE IF NOT EXISTS messages(
-	id SERIAL,
-	cid int,
+	id SERIAL, 
 	cname VARCHAR(128),
-	sid int,
 	sname VARCHAR(128),
-	message VARCHAR(128),
-	FOREIGN KEY(cid) REFERENCES channels(id),
-	FOREIGN KEY(sid) REFERENCES users(id),
-	FOREIGN KEY(cname) REFERENCES channels(name),
-	FOREIGN KEY(sname) REFERENCES users(name));`)
+	message VARCHAR(128));`)
 
 	if err != nil {
 		DB.Close()
+		fmt.Println(err)
 		log.Fatal("Error creating table messages.\n")
 	}
 }
 
-func InsertData(DB *sql.DB) {
+func InsertData() {
 	_, err := DB.Exec(`INSERT INTO channels(name) VALUES
 	('general'),
 	('english'),
@@ -63,7 +60,7 @@ func InsertData(DB *sql.DB) {
 	}
 }
 
-func GetAllMessagesOfChannel(DB *sql.DB, channel string) []string {
+func GetAllMessagesOfChannel(channel string) []string {
 	var messages []string
 
 	// Check if the required channel exists in the table
@@ -96,12 +93,15 @@ func GetAllMessagesOfChannel(DB *sql.DB, channel string) []string {
 	return messages
 }
 
-func InsertMessageIntoChannel(DB *sql.DB, channel, sendername, message string) bool {
-	_, err := DB.Exec("INSERT INTO messages(cname, sname, message) VALUES($1, $2, $3);", channel, sendername, message)
+func InsertMessageIntoChannel(channel, sendername, message string) bool {
+	result, err := DB.Exec("INSERT INTO messages(cname, sname, message) VALUES($1, $2, $3);", channel, sendername, message)
 	if err != nil {
 		fmt.Println("Error interting new message into channel ", channel)
+		fmt.Println(err)
 		return false
 	}
 
+	rowsEffected, err := result.RowsAffected()
+	fmt.Println("Message added. Rows effected: ", rowsEffected)
 	return true
 }

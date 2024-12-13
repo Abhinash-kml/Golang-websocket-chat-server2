@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	database "v/pkg"
 
 	"github.com/gorilla/websocket"
 )
@@ -70,6 +71,57 @@ func (c *ChatServer) HandleConnections(w http.ResponseWriter, r *http.Request) {
 		}
 
 		c.Messages <- *message
+
+		switch message.Channel {
+		case "general":
+			{
+				typePayload := &TextMessage{}
+				jsonPayload, err := json.Marshal(message.Payload)
+				if err != nil {
+					fmt.Println("Failed to marshal payload:", err)
+					continue
+				}
+
+				err = json.Unmarshal(jsonPayload, typePayload)
+				if err != nil {
+					fmt.Println("Failed to unmarshal payload:", err)
+					continue
+				}
+
+				if added := database.InsertMessageIntoChannel("general", message.Sender, typePayload.Data); added {
+					fmt.Println("New message added to table.")
+				}
+
+				if typePayload.Data == "allmessage" {
+					messages := database.GetAllMessagesOfChannel("general")
+					for _, value := range messages {
+						Payload := TextMessage{
+							Data: value,
+						}
+
+						MainMessage := &Message{
+							Sender:  "server",
+							Type:    "text",
+							Channel: "nil",
+							Payload: Payload,
+						}
+						conn.WriteJSON(MainMessage)
+					}
+				}
+			}
+		case "hindi":
+			{
+				database.InsertMessageIntoChannel("hindi", message.Sender, message.Payload.(TextMessage).Data)
+			}
+		case "english":
+			{
+				database.InsertMessageIntoChannel("english", message.Sender, message.Payload.(TextMessage).Data)
+			}
+		case "bakchodi":
+			{
+				database.InsertMessageIntoChannel("bakchodi", message.Sender, message.Payload.(TextMessage).Data)
+			}
+		}
 	}
 }
 

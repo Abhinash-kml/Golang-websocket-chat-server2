@@ -7,10 +7,12 @@ import (
 	"os/signal"
 	"syscall"
 	"v/models"
+	database "v/pkg"
 )
 
 func main() {
-	port := "8000" /* os.Getenv("PORT") */
+	port := "8000"       /* os.Getenv("PORT") */
+	database.ConnectDB() // Connect to postgress
 	serveraddres := fmt.Sprintf(":%s", port)
 	chatserver := models.NewChatServer()
 
@@ -26,5 +28,6 @@ func main() {
 
 	<-sigs
 
+	database.DB.Close()
 	fmt.Println("----- Shutting down server -----")
 }
